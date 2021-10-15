@@ -2,27 +2,47 @@
 
 namespace App\Entity;
 
+use ApiPlatform\Core\Annotation\ApiFilter;
 use ApiPlatform\Core\Annotation\ApiResource;
 use App\Repository\PostRepository;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
 use Symfony\Component\Validator\Constraints as Assert;
-use Symfony\Component\Validator\Constraints\DateTime;
+use ApiPlatform\Core\Bridge\Doctrine\Orm\Filter\SearchFilter;
+use App\Controller\PostPublishController;
+use App\Controller\PostCountController;
+
 
 /**
  * @ORM\Entity(repositoryClass=PostRepository::class)
  * @ApiResource(
  *     normalizationContext={"groups"={"read:collection"}},
  *     denormalizationContext={"groups"={"write:Post"}},
- *     attributes={"pagination_items_per_page"=1},
+ *     attributes={"pagination_items_per_page"=2},
+ *     collectionOperations={
+ *     "get",
+ *     "post",
+ *     "count"={
+ *          "method"="get",
+ *          "path"="/posts/count",
+ *          "controller"=PostCountController::class,
+ *          "paginations_enabled"=false
+ *     }
+ *     },
  *     itemOperations={
  *     "put",
  *     "delete",
  *     "get"={
  *     "normalization_context"={"groups"={"read:collection","read:item","read:Post"}}
- *     }
+ *     },
+ *     "publish"={
+ *          "method"="POST",
+ *          "path"="/posts/{id}/publish",
+ *          "controller"=PostPublishController::class
+ *      }
  * }
  * )
+ * @ApiFilter(SearchFilter::class, properties={"id": "exact", "title": "partial"})
  */
 class Post
 {
@@ -70,6 +90,12 @@ class Post
      * @Groups({"read:item", "write:Post"})
      */
     private $category;
+
+    /**
+     * @ORM\Column(type="boolean", options={"default":"0"})
+     * @Groups({"read:collection"})
+     */
+    private $online = false;
 
 
     public function __construct()
@@ -152,6 +178,18 @@ class Post
     public function setCategory(?Category $category): self
     {
         $this->category = $category;
+
+        return $this;
+    }
+
+    public function getOnline(): ?bool
+    {
+        return $this->online;
+    }
+
+    public function setOnline(bool $online): self
+    {
+        $this->online = $online;
 
         return $this;
     }
